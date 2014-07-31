@@ -80,6 +80,11 @@ void compressor::OutputSet(char* filename){
 	{
 		cout << "Output File Set to be "<<filename<<endl;
 	}
+	else
+	{
+		cout<< "Output File Set Fail, exiting!!!"<<endl;
+		exit(1);
+	}
 }
 
 void compressor::Encode(uchar* pattern){
@@ -132,13 +137,9 @@ void compressor::Encode(uchar* pattern){
 	return;
 }
 
-void compressor::Compress(char* filename){
-	if (!outputFile.is_open())
-	{
-		cout << "Please set the output file first"<<endl;
-		return;
-	}
-	ifstream inputFile(filename,ios::in);
+void compressor::Compress(char* oriFile, char* reFile){
+	this->OutputSet(reFile);
+	ifstream inputFile(oriFile,ios::in);
 	if (!inputFile.is_open())
 	{
 		cout << "Please check the input file's directory"<<endl;
@@ -158,11 +159,7 @@ void compressor::Compress(char* filename){
 	outputFile.close();
 }
 
-/***********************
-decoding error! cannot 
-restore the original 
-string in suffix tree
-***************************/
+
 void compressor::Decode(char* info)
 {
 	string code((char*)info);
@@ -210,14 +207,10 @@ void compressor::Decode(char* info)
 }
 
 
-void compressor::Decompress(char* filename)
+void compressor::Decompress(char* oriFile, char* reFile)
 {
-	if (!outputFile.is_open())
-	{
-		cout << "Please set the output file first"<<endl;
-		return;
-	}
-	ifstream inputFile(filename,ios::in);
+	this->OutputSet(reFile);
+	ifstream inputFile(oriFile,ios::in);
 	char buff[segLength + 5];
 	int line_counter = 0;
 	this->deBuff.clear();

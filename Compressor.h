@@ -30,7 +30,8 @@ private:
 
 	void Decode(char* info);
 
-
+	void OutputSet(char* filename);
+	
 public:
 	compressor();
 
@@ -42,11 +43,9 @@ public:
 
 	void CreateRefForest(char* filename);
 
-	void OutputSet(char* filename);
-	
-	void Compress(char* filename);
+	void Compress(char* oriFile, char* reFile);
 
-	void Decompress(char* filename);
+	void Decompress(char* oriFile, char* reFile);
 
 	int ForestSize();
 	

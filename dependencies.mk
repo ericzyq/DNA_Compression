@@ -16,13 +16,13 @@ SSTree.o: SSTree.cpp SSTree.h SuffixTree.h Tools.h CSA.h BitRank.h \
   SubblockRMQ.h Parentheses.h Hash.h LcpToParentheses.h
 SubblockRMQ.o: SubblockRMQ.cpp SubblockRMQ.h Tools.h BitRank.h \
   ReplacePattern.h
-Compress.o: Compress.cpp Compressor.h SSTree.h SuffixTree.h Tools.h CSA.h BitRank.h \
+Compressor.o: Compressor.cpp Compressor.h SSTree.h SuffixTree.h Tools.h CSA.h BitRank.h \
   ReplacePattern.h wtreebwt.h bittree.h rbtree.h CHgtArray.h CRMQ.h \
   SubblockRMQ.h Parentheses.h Hash.h LcpToParentheses.h
 Tools.o: Tools.cpp Tools.h
 bittree.o: bittree.cpp bittree.h rbtree.h Tools.h
 rbtree.o: rbtree.cpp rbtree.h
 wtreebwt.o: wtreebwt.cpp wtreebwt.h bittree.h rbtree.h Tools.h
-Compressor.o: Compressor.cpp SSTree.h SuffixTree.h Tools.h CSA.h BitRank.h \
+Compress.o: Compress.cpp Compressor.h SSTree.h SuffixTree.h Tools.h CSA.h BitRank.h \
   ReplacePattern.h wtreebwt.h bittree.h rbtree.h CHgtArray.h CRMQ.h \
   SubblockRMQ.h Parentheses.h Hash.h LcpToParentheses.h
