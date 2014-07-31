@@ -13,9 +13,7 @@ int main()
 	float diff0 = (((float)t2-(float)t1)/CLOCKS_PER_SEC)/60;
 
 	t1 = clock();
-	cout << "Compressing ...\n";
 	c.Compress("NA12882.txt","compressed.txt");
-	cout<<"Done!\n";
 	cout<<"Forest size: "<<c.ForestSize()<<endl;
 	t2 = clock();
 	float diff1 = (((float)t2-(float)t1)/CLOCKS_PER_SEC)/60;
@@ -28,9 +26,7 @@ int main()
 	c.CreateRefForest("NA12880.txt");
 	cout << "Finished creating!\n";
 	t1 = clock();
-	cout << "Decompressing ...\n";
 	c.Decompress("compressed.txt","decompressed.txt");
-	cout<<"Done!\n";
 	t2 = clock();
 	float diff2 = (((float)t2-(float)t1)/CLOCKS_PER_SEC)/60;
 

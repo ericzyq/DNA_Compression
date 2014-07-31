@@ -78,7 +78,7 @@ void compressor::OutputSet(char* filename){
 	outputFile.open(filename, ios::out);
 	if (outputFile.is_open())
 	{
-		cout << "Output File Set to be "<<filename<<endl;
+		cout << "Output File: "<<filename<<endl;
 	}
 	else
 	{
@@ -142,9 +142,10 @@ void compressor::Compress(char* oriFile, char* reFile){
 	ifstream inputFile(oriFile,ios::in);
 	if (!inputFile.is_open())
 	{
-		cout << "Please check the input file's directory"<<endl;
+		cout << "Failure£º Please check the input file's directory"<<endl;
 		return;
 	}
+	cout<<"Compressing file: "<<oriFile<<endl;
 	char buff[segLength + 5];
 	int line_counter = 0;
 	while(!inputFile.eof()){
@@ -156,6 +157,7 @@ void compressor::Compress(char* oriFile, char* reFile){
 		Encode((uchar*)buff);
 	}
 	cout<<endl;
+	cout<<"Compression Complete!"<<endl;
 	inputFile.close();
 	outputFile.close();
 }
@@ -212,6 +214,12 @@ void compressor::Decompress(char* oriFile, char* reFile)
 {
 	this->OutputSet(reFile);
 	ifstream inputFile(oriFile,ios::in);
+	if (!inputFile.is_open())
+	{
+		cout << "Failure£º Please check the input file's directory"<<endl;
+		return;
+	}
+	cout<<"Decompressing file: "<<oriFile<<endl;
 	char buff[segLength + 5];
 	int line_counter = 0;
 	this->deBuff.clear();
@@ -224,6 +232,7 @@ void compressor::Decompress(char* oriFile, char* reFile)
 		Decode((char*)buff);
 	}
 	cout<<endl;
+	cout<<"Decompression Complete!"<<endl;
 	inputFile.close();
 	outputFile.close();
 }
