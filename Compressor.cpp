@@ -49,9 +49,10 @@ void compressor::CreateRefForest(char* filename){
 	ifstream myFile(filename);
 	if (!myFile.is_open())
 	{
-		cout << "Please check the reference file's directory"<<endl;
-		return;
+		cout << "Failure: Please check the reference file's directory"<<endl;
+		exit(1);
 	}
+	cout<<"Creating reference forest from file:¡¡"<<filename<<endl;
 	this->clear();
 	char output[segLength + 5];
 	unordered_map<string,bool> forest;
@@ -67,6 +68,7 @@ void compressor::CreateRefForest(char* filename){
 	}
 	myFile.close();
 	initialSize = refTree.size();
+	cout<<"Complete!"<<endl;
 }
 
 void compressor::OutputSet(char* filename){
@@ -153,11 +155,10 @@ void compressor::Compress(char* oriFile, char* reFile){
 		if (strlen(buff) == 0)
 			continue;
 		line_counter ++;
-		printf("Decompressing line: %d\r",line_counter);
+		printf("Compressing line: %d...\r",line_counter);
 		Encode((uchar*)buff);
 	}
-	cout<<endl;
-	cout<<"Compression Complete!"<<endl;
+	cout<<endl<<"Complete!"<<endl;
 	inputFile.close();
 	outputFile.close();
 }
@@ -228,11 +229,10 @@ void compressor::Decompress(char* oriFile, char* reFile)
 		if (strlen(buff) == 0)
 			continue;
 		line_counter ++;
-		printf("Decompressing line: %d\r",line_counter);
+		printf("Decompressing line: %d...\r",line_counter);
 		Decode((char*)buff);
 	}
-	cout<<endl;
-	cout<<"Decompression Complete!"<<endl;
+	cout<<endl<<"Complete!"<<endl;
 	inputFile.close();
 	outputFile.close();
 }
