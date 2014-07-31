@@ -3,32 +3,39 @@
 compressor::compressor()
 {
 	initialSize = 0;
-	nodeNum = 0;
+	searchRec = 0;
 }
 
 compressor::compressor(char* filename)
 {
 	initialSize = 0;
-	nodeNum = 0;
+	searchRec = 0;
 	CreateRefForest(filename);
 }
 
 compressor::~compressor()
 {
-	for (int i = 0; i<refTree.size(); i++)
-	{
-		delete refTree[i];
-	}
-	if (outputFile.is_open())
-	{
-		outputFile.close();
-	}
-	
+	this->clear();	
 }
 
 int compressor::ForestSize()
 {
 	return refTree.size();
+}
+
+void compressor::clear()
+{
+	for (int i = 0; i<refTree.size(); i++)
+	{
+		delete refTree[i];
+	}
+	refTree.clear();
+	if (outputFile.is_open())
+	{
+		outputFile.close();
+	}
+	occurrence.clear();
+	searchRec = 0;
 }
 
 SSTree* compressor::CreateRefTree(uchar* text){
@@ -45,20 +52,18 @@ void compressor::CreateRefForest(char* filename){
 		cout << "Please check the reference file's directory"<<endl;
 		return;
 	}
-	char output[110];
+	this->clear();
+	char output[segLength + 5];
+	unordered_map<string,bool> forest;
 	while(!myFile.eof()){
 		myFile >> output;
 		if (!myFile)
 			break;
-		int occur = 0;
-		for(int i = 0; i < (signed)refTree.size(); i++){
-			if(refTree[i]->search((uchar*)output,101) != 0){
-				occur = 1;
-				break;
-			}
-		}
-		if(occur == 0)
+		if (forest.count((char*)output) == 0)
+		{
+			forest[(char*)output] = true;
 			refTree.push_back(CreateRefTree((uchar*)output));
+		} 
 	}
 	myFile.close();
 	initialSize = refTree.size();
@@ -73,33 +78,35 @@ void compressor::OutputSet(char* filename){
 	outputFile.open(filename, ios::out);
 	if (outputFile.is_open())
 	{
-		cout << "Output File Set to be"<<*filename<<endl;
+		cout << "Output File Set to be "<<filename<<endl;
 	}
 }
 
 void compressor::Encode(uchar* pattern){
-	stringstream s,result;
-	s << pattern;
-	string target = s.str();
+	stringstream result;
+	string target((char*)pattern);
 	ulong length = target.length();
 
 	result.clear();
 	int node_num = 0;
 	for (int i = 0; i < refTree.size(); i++){
-		node_num = refTree[(i+nodeNum)%refTree.size()]->search(pattern,length);
+		int treeNum = (i + searchRec)%refTree.size();
+		node_num = refTree[treeNum]->search(pattern,length);
 		if (node_num != 0) {
-			
-			if(i < initialSize)
-				result << i;
-			else{
+			if(treeNum < initialSize)
+			{
 				result << 's';
-				result << i-initialSize;
+				result << treeNum;
+			}
+			else{
+				result << 'd';
+				result << treeNum-initialSize;
 			}
 			result << " ";
-			result << refTree[(i+nodeNum)%refTree.size()]->textpos(node_num);
+			result << refTree[treeNum]->textpos(node_num);
 			result << " ";
 			result << length;
-			nodeNum = i;
+			searchRec = i;
 			break;
 		}
 	}
@@ -137,10 +144,10 @@ void compressor::Compress(char* filename){
 		cout << "Please check the input file's directory"<<endl;
 		return;
 	}
-	char buff[110];
+	char buff[segLength + 5];
 	int line_counter = 0;
 	while(!inputFile.eof()){
-		inputFile.getline(buff,110);
+		inputFile.getline(buff,segLength + 5);
 		if (strlen(buff) == 0)
 			continue;
 		line_counter ++;
@@ -152,67 +159,76 @@ void compressor::Compress(char* filename){
 }
 
 /***********************
-the following part is not finished yet
+decoding error! cannot 
+restore the original 
+string in suffix tree
 ***************************/
-//void compressor::Decode(uchar* code)
-//{
-//	string line, ref, result;
-//	int pos, length;
-//	ofstream output;
-//	string currLine = "";
-//	output.open ("Decoded.txt",ios::app);
-//	while(getline(input, line))
-//	{
-//		stringstream linestream(line);
-//		getline(linestream, ref, ' ');
-//		if(ref.at(0) == '+'){
-//			result = ref.substr(1,ref.size());
-//			refTree.push_back(createRefTree((uchar*)result.c_str()));
-//		}
-//		else if((ref.at(0) >= 'A') & (ref.at(0) <= 'Z'))
-//			result = ref;
-//		else{
-//			linestream >> pos >> length;
-//			stringstream ss;
-//			if(ref.at(0) == 's')
-//				ss << refTree[atoi(ref.substr(1,ref.size()).c_str()) + initialSize]->substring(pos,length);
-//			else
-//				ss << refTree[atoi(ref.c_str())]->substring(pos,length);
-//			result = ss.str();
-//		}
-//		if(currLine.size() + result.size() <= 101){
-//			output << result;
-//			currLine += result;
-//		}
-//		else{
-//			output << result.substr(0,101-currLine.size());
-//			output << "\n";
-//			string nextLine = result.substr(101-currLine.size(),result.size());
-//			output << nextLine;
-//			currLine = nextLine;
-//		}
-//	}
-//}
-//
-//
-//void compressor::Decompress(char* filename)
-//{
-//	if (!outputFile.is_open())
-//	{
-//		cout << "Please set the output file first"<<endl;
-//		return;
-//	}
-//	ifstream inputFile(filename,ios::in);
-//	char buff[110];
-//	int line_counter = 0;
-//	while(!inputFile.eof()){
-//		inputFile.getline(buff,110);
-//		if (strlen(buff) == 0)
-//			continue;
-//		line_counter ++;
-//		cout<<"Decompressing line: "<<line_counter<<endl;
-//		Decode((uchar*)buff);
-//	}
-//	inputFile.close();
-//	outputFile.close();
-//}
+void compressor::Decode(char* info)
+{
+	string code((char*)info);
+
+	switch (code[0])
+	{
+		case '+' : // For dynamically added references
+		{
+			code = code.substr(1,string::npos);
+			refTree.push_back(CreateRefTree((uchar*)code.c_str()));
+			deBuff.append(code);
+			break;
+		}
+		case 'd' : // For alignments to dynamic references
+		{
+			int p1 = code.find(' ');
+			int p2 = code.find(' ', p1+1);
+			int treeNum = atoi(code.substr(1,p1-1).c_str());
+			int pos = atoi(code.substr(p1+1,p2-1).c_str());
+			int length = atoi(code.substr(p2+1).c_str());
+			deBuff.append((char*)refTree[treeNum + initialSize]->substring(pos,length));
+			break;
+		}
+		case ('s') : // For alignments to static references
+		{
+			int p1 = code.find(' ');
+			int p2 = code.find(' ', p1+1);
+			int treeNum = atoi(code.substr(1,p1-1).c_str());
+			int pos = atoi(code.substr(p1+1,p2-1).c_str());
+			int length = atoi(code.substr(p2+1).c_str());
+			deBuff.append((char*)refTree[treeNum]->substring(pos,length));
+			break;
+		}
+		default: // For non-matched segments
+		{
+			deBuff.append(code);
+			break;
+		}			
+	}
+	if(deBuff.size() >= segLength)
+	{
+		outputFile << deBuff << endl;
+		deBuff.clear();
+	}
+}
+
+
+void compressor::Decompress(char* filename)
+{
+	if (!outputFile.is_open())
+	{
+		cout << "Please set the output file first"<<endl;
+		return;
+	}
+	ifstream inputFile(filename,ios::in);
+	char buff[segLength + 5];
+	int line_counter = 0;
+	this->deBuff.clear();
+	while(!inputFile.eof()){
+		inputFile.getline(buff,segLength + 5);
+		if (strlen(buff) == 0)
+			continue;
+		line_counter ++;
+		cout<<"Decompressing line: "<<line_counter<<endl;
+		Decode((char*)buff);
+	}
+	inputFile.close();
+	outputFile.close();
+}

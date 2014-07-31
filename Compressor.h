@@ -7,6 +7,7 @@
 #include "SSTree.h"
 using namespace std;
 #define THRESH 10
+#define segLength 101
 
 class compressor
 {
@@ -17,15 +18,18 @@ private:
 
 	int initialSize;
 
+	int searchRec;
+
+	string deBuff;
+
 	ofstream outputFile;
 
 	SSTree* CreateRefTree(uchar* text);
 
 	void Encode(uchar* pattern);
 
-	void Decode(uchar* code);
+	void Decode(char* info);
 
-	int nodeNum;
 
 public:
 	compressor();
@@ -33,6 +37,8 @@ public:
 	compressor(char* filename);
 
 	~compressor();
+
+	void clear();
 
 	void CreateRefForest(char* filename);
 
