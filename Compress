@@ -1,0 +1,192 @@
+#include <iostream>
+#include <fstream>
+#include <string>
+#include <sstream>
+#include <cstring>
+#include <pthread.h>
+#include <time.h>
+#include <map>
+#include "SSTree.h"
+using namespace std;
+
+#define THRESH 10
+#define NUM_THREADS 4
+
+vector<SSTree*> refTree;
+map<string, int> occurrence;
+map<string, int> codebook;
+int initialSize;
+int node_num;
+
+struct thread_data{
+	int id;
+	uchar *pattern;
+	string result;
+	int node;
+};
+
+SSTree *createRefTree(uchar* text){
+	ulong n = strlen((char*)text);
+	n++;
+	SSTree *sst = new SSTree(text, n);
+	return sst;
+}
+
+void createRefForest(string filename){
+	ifstream myFile(filename.c_str());
+	char output[110];
+	while(!myFile.eof()){
+		myFile >> output;
+		if (!myFile)
+			break;
+		int occur = 0;
+		for(int i = 0; i < (signed)refTree.size(); i++){
+			if(refTree[i]->search((uchar*)output,101) != 0){
+				occur = 1;
+				break;
+			}
+		}
+		if(occur == 0)
+			refTree.push_back(createRefTree((uchar*)output));
+	}
+	myFile.close();
+}
+
+void *search(void *arg){
+	struct thread_data *data = (struct thread_data *) arg;
+	int size = refTree.size();
+	int length = strlen((char*)data->pattern);
+	stringstream s1,s2,s3;
+	for(int i = data->id*size/NUM_THREADS; i < (data->id+1)*size/NUM_THREADS; i++){
+		if(node_num != 0)
+			pthread_exit(NULL);
+		data->node = refTree[i]->search(data->pattern,length);
+		if(data->node != 0){
+			node_num = data->node;
+			s1.clear();
+			s2.clear();
+			s3.clear();
+			if(i < initialSize)
+				s1 << i;
+			else{
+				s1 << 's';
+				s1 << i-initialSize;
+			}
+			data->result = s1.str() + " ";
+			s2 << refTree[i]->textpos(data->node);
+			data->result += s2.str() + " ";
+			s3 << length;
+			data->result += s3.str();
+			break;
+		}
+	}
+}
+
+void encode(uchar* pattern){
+	stringstream s;
+	s << pattern;
+	string target = s.str();
+	int length = target.length();
+	string result = "";
+	node_num = 0;
+	pthread_t threads[NUM_THREADS];
+	struct thread_data td[NUM_THREADS];
+	for(int i = 0; i < NUM_THREADS; i++){
+		td[i].id = i;
+		td[i].pattern = pattern;
+		td[i].result = "";
+		td[i].node = 0;
+		pthread_create(&threads[i], NULL, search, (void*)&td[i]);
+	}
+	for(int i = 0; i < NUM_THREADS; i++){
+		pthread_join(threads[i],NULL);
+		if(td[i].result != "")
+			result = td[i].result;
+	}
+	if(result == ""){
+		occurrence[target]++;
+		if(occurrence[target] >= 10){
+			refTree.push_back(createRefTree(pattern));
+			result = "+" + target;
+		}
+		else if (length/2 < THRESH)
+			result = target;
+		else{
+			string a = target.substr(0,length/2);
+			string b = target.substr(length/2,length);
+			encode((uchar*) a.c_str());
+			encode((uchar*) b.c_str());
+		}
+	}
+	ofstream myfile;
+	myfile.open ("RPMM_Original.txt",ios::app);
+	if(result != "")
+		myfile << result << endl;
+	myfile.close();
+}
+
+void matchAlignments(string filename){
+	ifstream myFile(filename.c_str());
+	char output[110];
+	while(!myFile.eof()){
+		myFile >> output;
+		if (!myFile)
+			break;
+		encode((uchar*)output);
+	}
+	myFile.close();
+}
+
+void compressRPMM(string filename){
+	ifstream inFile(filename.c_str());
+	string line,result;
+	int lineNum = 1;
+	ofstream outFile;
+	int delta_ref = 0;
+	outFile.open ("RPMM_Compressed.txt",ios::app);
+	while(getline(inFile,line)){
+		if (!inFile)
+			break;
+		if(codebook[line] == 0){
+			outFile << line << endl;
+			codebook[line] = lineNum;
+			lineNum++;
+		}
+		else{
+			stringstream s;
+			s.clear();
+			s << codebook[line]-delta_ref;
+			delta_ref = codebook[line];
+			outFile << s.str() << endl;
+		}
+	}
+	outFile.close();
+}
+
+int main() {
+	struct timespec start, finish;
+	double elapsed;
+	clock_gettime(CLOCK_MONOTONIC,&start);
+
+	cout << "Creating reference forest ...\n";
+	createRefForest("NA12880.txt");
+	cout << "Finished creating!\n";
+	initialSize = refTree.size();
+
+	ofstream rpmm;
+	rpmm.open ("RPMM_Original.txt");
+	cout << "Matching alignments ...\n";
+	matchAlignments("882_10M.txt");
+	cout << "Finished matching!\nForest size: " << refTree.size() << endl;
+
+	ofstream rpmm_comp;
+	rpmm_comp.open ("RPMM_Compressed.txt");
+	cout << "Compressing RPMM file ...\n";
+	compressRPMM("RPMM_Original.txt");
+	cout << "Finished compressing!\n";
+
+	clock_gettime(CLOCK_MONOTONIC,&finish);
+	elapsed = ((finish.tv_sec - start.tv_sec) + (finish.tv_nsec - start.tv_nsec)/1000000000.0)/60;
+	cout << "Execution time: " << elapsed << " minutes\n";
+	return 0;
+}
