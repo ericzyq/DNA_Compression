@@ -1,0 +1,138 @@
+#include <iostream>
+#include <fstream>
+#include <string>
+#include <sstream>
+#include <cstring>
+#include <time.h>
+#include "SSTree.h"
+using namespace std;
+
+vector<SSTree*> refTree;
+int initialSize;
+map<int, string> codebook;
+
+SSTree *createRefTree(uchar* text){
+	ulong n = strlen((char*)text);
+	n++;
+	SSTree *sst = new SSTree(text, n);
+	return sst;
+}
+
+void createRefForest(string filename){
+	ifstream myFile(filename.c_str());
+	char output[110];
+	while(!myFile.eof()){
+		myFile >> output;
+		if (!myFile)
+			break;
+		int occur = 0;
+		for(int i = 0; i < (signed)refTree.size(); i++){
+			if(refTree[i]->search((uchar*)output,101) != 0){
+				occur = 1;
+				break;
+			}
+		}
+		if(occur == 0)
+			refTree.push_back(createRefTree((uchar*)output));
+	}
+	myFile.close();
+}
+
+void decode(string filename){
+	ifstream input(filename.c_str());
+	string line, ref, result;
+	int pos, length;
+	ofstream output;
+	string currLine = "";
+	output.open ("Decoded_Original.txt",ios::app);
+	while(getline(input, line)){
+		stringstream linestream(line);
+		getline(linestream, ref, ' ');
+		if(ref.at(0) == '+'){
+			result = ref.substr(1,ref.size());
+			refTree.push_back(createRefTree((uchar*)result.c_str()));
+		}
+		else if((ref.at(0) >= 'A') & (ref.at(0) <= 'Z'))
+			result = ref;
+		else{
+			linestream >> pos >> length;
+			stringstream ss;
+			if(ref.at(0) == 's')
+				ss << refTree[atoi(ref.substr(1,ref.size()).c_str()) + initialSize]->substring(pos,length);
+			else
+				ss << refTree[atoi(ref.c_str())]->substring(pos,length);
+			result = ss.str();
+		}
+		if(currLine.size() + result.size() <= 101){
+			output << result;
+			currLine += result;
+		}
+		else{
+			output << result.substr(0,101-currLine.size());
+			output << "\n";
+			string nextLine = result.substr(101-currLine.size(),result.size());
+			output << nextLine;
+			currLine = nextLine;
+		}
+	}
+	output.close();
+}
+
+void decodeRPMM(string filename){
+	ifstream input(filename.c_str());
+	string line;
+	ofstream output;
+	int delta_ref = 0;
+	int lineNum = 1;
+	output.open ("Decoded_RPMM.txt",ios::app);
+	while(getline(input, line)){
+		stringstream linestream(line);
+		string num1, num2;
+		if(line.at(0) == '+' || ((line.at(0) >= 'A') & (line.at(0) <= 'Z')) || line.at(0) == 's'){
+			output << line << endl;
+			codebook[lineNum] = line;
+			lineNum++;
+		}
+		else{
+			linestream >> num1 >> num2;
+			if(num2 != ""){
+				output << line << endl;;
+				codebook[lineNum] = line;
+				lineNum++;
+			}
+			else{
+				delta_ref += atoi(num1.c_str());
+				output << codebook[delta_ref] << endl;
+
+			}
+		}
+	}
+	output.close();
+}
+
+int main() {
+	struct timespec start, finish;
+	double elapsed;
+	clock_gettime(CLOCK_MONOTONIC,&start);
+
+	ofstream rpmm_decoded;
+	rpmm_decoded.open ("Decoded_RPMM.txt");
+	cout << "Decoding last file ...\n";
+	decodeRPMM("RPMM_Compressed.txt");
+
+	cout << "Creating reference forest ...\n";
+	createRefForest("NA12880.txt");
+	cout << "Finished creating!\n";
+	initialSize = refTree.size();
+
+	ofstream original;
+	original.open ("Decoded_Original.txt");
+	cout << "Decoding RPMM file ...\n";
+	decode("Decoded_RPMM.txt");
+	cout << "Finished decoding!\n";
+
+	clock_gettime(CLOCK_MONOTONIC,&finish);
+	elapsed = ((finish.tv_sec - start.tv_sec) + (finish.tv_nsec - start.tv_nsec)/1000000000.0)/60;
+	cout << "Execution time: " << elapsed << "minutes\n";
+	return 0;
+}
